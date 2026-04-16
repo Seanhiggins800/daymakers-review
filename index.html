@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daymakers Photo Review</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #F7C52C;
+    --black: #0f0f0f;
+    --dark: #1a1a1a;
+    --gray: #2a2a2a;
+    --text-muted: #888;
+    --white: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--black); color: var(--white); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .header { background: var(--dark); border-bottom: 3px solid var(--yellow); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-icon { width: 36px; height: 36px; background: var(--yellow); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .brand-name { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--white); }
+  .brand-sub { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+  .progress-info { text-align: right; }
+  .progress-count { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--yellow); line-height: 1; }
+  .progress-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .progress-bar-container { height: 4px; background: var(--gray); width: 100%; }
+  .progress-bar { height: 100%; background: var(--yellow); transition: width 0.5s ease; }
+  .main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 32px 24px; gap: 24px; max-width: 900px; margin: 0 auto; width: 100%; }
+  .photo-card { width: 100%; background: var(--dark); border-radius: 16px; overflow: hidden; border: 1px solid var(--gray); }
+  .photo-meta { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--gray); }
+  .photo-date { font-size: 13px; color: var(--text-muted); }
+  .ai-guess { display: flex; align-items: center; gap: 8px; background: rgba(247,197,44,0.1); border: 1px solid rgba(247,197,44,0.3); border-radius: 20px; padding: 4px 12px; }
+  .ai-guess-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .ai-guess-value { font-size: 12px; color: var(--yellow); font-weight: 600; }
+  .photo-wrapper { width: 100%; max-height: 480px; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; }
+  .photo-wrapper img { width: 100%; max-height: 480px; object-fit: contain; display: block; }
+  .photo-reason { padding: 14px 20px; border-top: 1px solid var(--gray); font-size: 13px; color: var(--text-muted); line-height: 1.6; font-style: italic; }
+  .folder-section { width: 100%; }
+  .folder-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 12px; text-align: center; }
+  .folder-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 600px) { .folder-grid { grid-template-columns: repeat(2, 1fr); } }
+  .folder-btn { background: var(--dark); border: 1.5px solid var(--gray); border-radius: 10px; padding: 14px 10px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; text-align: center; line-height: 1.3; }
+  .folder-btn:hover { border-color: var(--yellow); background: rgba(247,197,44,0.08); transform: translateY(-2px); }
+  .folder-btn.selected { border-color: var(--yellow); background: var(--yellow); color: var(--black); }
+  .folder-btn .icon { font-size: 22px; }
+  .action-row { display: flex; gap: 12px; width: 100%; justify-content: center; }
+  .btn-skip { background: transparent; border: 1.5px solid var(--gray); color: var(--text-muted); border-radius: 8px; padding: 12px 28px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+  .btn-skip:hover { border-color: var(--text-muted); color: var(--white); }
+  .btn-remove { background: transparent; border: 1.5px solid #6a2a2a; color: #ff6b6b; border-radius: 8px; padding: 12px 28px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+  .btn-remove:hover { background: rgba(255,107,107,0.1); border-color: #ff6b6b; }
+  .btn-confirm { background: var(--yellow); border: none; color: var(--black); border-radius: 8px; padding: 12px 40px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; transition: all 0.2s; opacity: 0.4; pointer-events: none; }
+  .btn-confirm.active { opacity: 1; pointer-events: all; }
+  .btn-confirm.active:hover { background: #ffd54f; transform: translateY(-1px); }
+  .loading-state, .empty-state, .done-state, .error-state { text-align: center; padding: 80px 24px; }
+  .spinner { width: 48px; height: 48px; border: 3px solid var(--gray); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 24px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 2px; margin-bottom: 12px; }
+  .state-sub { color: var(--text-muted); font-size: 15px; line-height: 1.6; }
+  .done-icon { font-size: 64px; margin-bottom: 16px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--yellow); color: var(--black); padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; transition: transform 0.3s ease; z-index: 999; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .photo-card-wrapper { position: relative; width: 100%; }
+  .saving-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; border-radius: 16px; backdrop-filter: blur(4px); }
+  .saving-overlay .spinner { width: 36px; height: 36px; border-width: 3px; }
+  @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+  @keyframes bounce { from { transform: scale(1); } to { transform: scale(1.2); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-icon">☀️</div>
+    <div>
+      <div class="brand-name">Daymakers</div>
+      <div class="brand-sub">Photo Review</div>
+    </div>
+  </div>
+  <div class="progress-info">
+    <div class="progress-count" id="progressCount">—</div>
+    <div class="progress-label">Remaining</div>
+  </div>
+</div>
+
+<div class="progress-bar-container">
+  <div class="progress-bar" id="progressBar" style="width:0%"></div>
+</div>
+
+<div class="main" id="mainContent">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <div class="state-title">Loading Photos</div>
+    <div class="state-sub">Fetching pending reviews from the queue...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GET_URL = 'https://daymakersmoving.app.n8n.cloud/webhook/get-pending-photos';
+const UPDATE_URL = 'https://daymakersmoving.app.n8n.cloud/webhook/update-review';
+
+const FOLDERS = [
+  { key: 'carrying', label: 'Carrying', icon: '📦' },
+  { key: 'crew', label: 'Crew', icon: '👷' },
+  { key: 'house_protection', label: 'House Protection', icon: '🏠' },
+  { key: 'office_staff', label: 'Office Staff', icon: '💼' },
+  { key: 'packing', label: 'Packing', icon: '📫' },
+  { key: 'pianos', label: 'Pianos', icon: '🎹' },
+  { key: 'safes', label: 'Safes', icon: '🔒' },
+  { key: 'trucks', label: 'Trucks', icon: '🚛' },
+  { key: 'using_equipment', label: 'Using Equipment', icon: '🛒' },
+  { key: 'wrapped_furniture', label: 'Wrapped Furniture', icon: '🛋️' },
+  { key: 'other', label: 'Other', icon: '📁' },
+];
+
+let photos = [];
+let currentIndex = 0;
+let selectedFolder = null;
+let totalCount = 0;
+let completedCount = 0;
+
+async function fetchPendingPhotos() {
+  try {
+    const res = await fetch(GET_URL);
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch(e) {
+    return null;
+  }
+}
+
+async function updateRow(rowNumber, folder, status = 'complete') {
+  try {
+    const res = await fetch(UPDATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ row_number: rowNumber, folder: folder, status: status })
+    });
+    return res.ok;
+  } catch(e) {
+    return false;
+  }
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = new Date(parseInt(ts) * 1000);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function updateProgress() {
+  const remaining = photos.length - currentIndex;
+  document.getElementById('progressCount').textContent = remaining;
+  const pct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function renderPhoto(photo) {
+  selectedFolder = null;
+  const main = document.getElementById('mainContent');
+  const guessDisplay = (photo.folder_guess || 'unknown').replace(/_/g, ' ');
+  const confidence = photo.confidence ? Math.round(parseFloat(photo.confidence) * 100) + '%' : '';
+
+  main.innerHTML = `
+    <div class="photo-card-wrapper">
+      <div class="photo-card" id="photoCard">
+        <div class="photo-meta">
+          <span class="photo-date">${formatDate(photo.submissionTimestamp)}</span>
+          <div class="ai-guess">
+            <span class="ai-guess-label">AI Guess</span>
+            <span class="ai-guess-value">${guessDisplay}${confidence ? ' · ' + confidence : ''}</span>
+          </div>
+        </div>
+        <div class="photo-wrapper">
+          <img src="${photo.imageUrl}" alt="Review photo" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect fill=%22%23222%22 width=%22400%22 height=%22300%22/><text fill=%22%23666%22 x=%22200%22 y=%22150%22 text-anchor=%22middle%22 font-size=%2218%22>Image unavailable</text></svg>'"/>
+        </div>
+        <div class="photo-reason">${photo.reason || ''}</div>
+      </div>
+    </div>
+    <div class="folder-section">
+      <div class="folder-label">Select the correct folder</div>
+      <div class="folder-grid" id="folderGrid">
+        ${FOLDERS.map(f => `
+          <button class="folder-btn ${photo.folder_guess === f.key ? 'selected' : ''}" data-key="${f.key}" onclick="selectFolder('${f.key}')">
+            <span class="icon">${f.icon}</span>
+            <span>${f.label}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn-remove" onclick="removePhoto()">🗑 Remove</button>
+      <button class="btn-skip" onclick="skipPhoto()">Skip for now</button>
+      <button class="btn-confirm ${photo.folder_guess ? 'active' : ''}" id="confirmBtn" onclick="confirmFolder()">Confirm Folder →</button>
+    </div>
+  `;
+
+  if (photo.folder_guess) selectedFolder = photo.folder_guess;
+  updateProgress();
+}
+
+function selectFolder(key) {
+  selectedFolder = key;
+  document.querySelectorAll('.folder-btn').forEach(b => b.classList.toggle('selected', b.dataset.key === key));
+  document.getElementById('confirmBtn').classList.add('active');
+}
+
+async function confirmFolder() {
+  if (!selectedFolder) return;
+  const photo = photos[currentIndex];
+  const card = document.getElementById('photoCard');
+  const overlay = document.createElement('div');
+  overlay.className = 'saving-overlay';
+  overlay.innerHTML = '<div class="spinner"></div>';
+  card.appendChild(overlay);
+
+  const success = await updateRow(photo.row_number, selectedFolder);
+
+  if (success) {
+    completedCount++;
+    showToast('✓ Sorted to ' + selectedFolder.replace(/_/g, ' '));
+    currentIndex++;
+    setTimeout(() => {
+      currentIndex >= photos.length ? renderDone() : renderPhoto(photos[currentIndex]);
+    }, 400);
+  } else {
+    overlay.remove();
+    showToast('⚠️ Error saving — try again');
+  }
+}
+
+async function removePhoto() {
+  const photo = photos[currentIndex];
+  const card = document.getElementById('photoCard');
+  const overlay = document.createElement('div');
+  overlay.className = 'saving-overlay';
+  overlay.innerHTML = '<div class="spinner"></div>';
+  card.appendChild(overlay);
+
+  const success = await updateRow(photo.row_number, 'removed', 'removed');
+
+  if (success) {
+    showToast('🗑 Photo removed from queue');
+    currentIndex++;
+    setTimeout(() => {
+      currentIndex >= photos.length ? renderDone() : renderPhoto(photos[currentIndex]);
+    }, 400);
+  } else {
+    overlay.remove();
+    showToast('⚠️ Error removing — try again');
+  }
+}
+
+function skipPhoto() {
+  currentIndex++;
+  updateProgress();
+  currentIndex >= photos.length ? renderDone() : renderPhoto(photos[currentIndex]);
+}
+
+function launchConfetti() {
+  const colors = ['#F7C52C', '#ffffff', '#ffd54f', '#FFE082', '#1a1a1a'];
+  for (let i = 0; i < 150; i++) {
+    const piece = document.createElement('div');
+    const size = Math.random() * 10 + 5;
+    const isCircle = Math.random() > 0.5;
+    piece.style.cssText = `
+      position: fixed;
+      top: -20px;
+      left: ${Math.random() * 100}vw;
+      width: ${size}px;
+      height: ${isCircle ? size : size * 0.4}px;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius: ${isCircle ? '50%' : '2px'};
+      opacity: ${Math.random() * 0.8 + 0.2};
+      z-index: 9999;
+      pointer-events: none;
+      animation: confettiFall ${Math.random() * 2.5 + 1.5}s ease-in forwards;
+      animation-delay: ${Math.random() * 2}s;
+      transform: rotate(${Math.random() * 360}deg);
+    `;
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 5000);
+  }
+}
+
+function renderDone() {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="done-state">
+      <div class="done-icon" style="animation: bounce 0.5s ease infinite alternate;">🎉</div>
+      <div class="state-title" style="color: var(--yellow); font-size: 72px; letter-spacing: 4px;">YAY!</div>
+      <div class="state-title" style="font-size: 28px; margin-top: 4px;">All Done!</div>
+      <div class="state-sub" style="margin-top: 16px;">You've reviewed all pending photos.<br>The noon scheduler will upload them to Google Drive automatically.</div>
+    </div>
+  `;
+  document.getElementById('progressCount').textContent = '0';
+  document.getElementById('progressBar').style.width = '100%';
+  launchConfetti();
+  setTimeout(launchConfetti, 1500);
+}
+
+async function init() {
+  const data = await fetchPendingPhotos();
+
+  if (data === null) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="error-state">
+        <div class="done-icon">⚠️</div>
+        <div class="state-title">Connection Error</div>
+        <div class="state-sub">Could not connect to the review queue.<br>Please check your connection and try again.</div>
+      </div>
+    `;
+    document.getElementById('progressCount').textContent = '—';
+    return;
+  }
+
+  photos = data;
+  totalCount = photos.length;
+
+  if (photos.length === 0) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="empty-state">
+        <div class="done-icon">✅</div>
+        <div class="state-title">Queue is Clear</div>
+        <div class="state-sub">No photos are currently pending review.<br>Check back after the next batch runs.</div>
+      </div>
+    `;
+    document.getElementById('progressCount').textContent = '0';
+    return;
+  }
+
+  renderPhoto(photos[currentIndex]);
+}
+
+init();
+</script>
+</body>
+</html>
